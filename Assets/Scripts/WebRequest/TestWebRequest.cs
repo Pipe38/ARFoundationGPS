@@ -5,22 +5,74 @@ using UnityEngine;
 
 public class TestWebRequest : MonoBehaviour
 {
+    public bool TestPostScore;
+
     public string MyDreamloLink;
     public string UserName;
     public int UserScore;
+    public TextAsset BadWordsDatabaseIT;
 
     string Url;
+
+    char[] illegalChars = new char[] {',','"'};
+    public string[] badWordsArray;
 
     // Start is called before the first frame update
     void Start()
     {
-        AddScoreToLeaderboard(UserName,UserScore);
+        badWordsArray = BadWordsDatabaseIT.text.Split('\n');
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (TestPostScore)
+        {
+            if (ValidateString(UserName) && ValidateBadWords(UserName))
+            {
+                AddScoreToLeaderboard(UserName, UserScore);
+            }
+            else
+            {
+                Debug.LogError("Illegal Username!");
+            }
+            TestPostScore = false;
+        }
+    }
+
+    bool ValidateString(string stringToValidate)
+    {
+        bool stringIsOk = true;
+
+        for (int i = 0; i < illegalChars.Length; i++)
+        {
+            if (stringToValidate.Contains(illegalChars[i]))
+            {
+                stringIsOk = false;
+            }
+        }
+
+        return stringIsOk;
+    }
+
+    bool ValidateBadWords(string stringToValidate)
+    {
+        bool stringIsOk = true;
+
+        string lowerCaseStringToValidate = stringToValidate.ToLower();
+
+        for (int i = 0; i < badWordsArray.Length; i++)
+        {
+            if (!string.IsNullOrEmpty(badWordsArray[i]))
+            {
+                if (lowerCaseStringToValidate.Contains(badWordsArray[i]))
+                {
+                    stringIsOk = false;
+                }
+            }
+        }
+
+        return stringIsOk;
     }
 
     public void AddScoreToLeaderboard(string usernameToPost, int scoreToPost)

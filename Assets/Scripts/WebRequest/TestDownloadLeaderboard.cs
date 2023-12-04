@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Networking;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TestDownloadLeaderboard : MonoBehaviour
 {
@@ -10,17 +11,51 @@ public class TestDownloadLeaderboard : MonoBehaviour
     public string[] ScoreLines;
     public List<ScoreData> MyScoreData = new List<ScoreData>();
 
+    [Header ("Ui Variables: ")]
+    public SetEntryData EntryPrefab;
+    public RectTransform ContentRectTransform;
+    public float OffsetBetweenEntries = 5;
+    List<SetEntryData> scoreEntries = new List<SetEntryData>();
+    bool instantiateEntries;
+
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(DownloadWebPage(LeaderboardURL));
+        InvokeRepeating("UpdateScoreboard", 1, 5);
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (instantiateEntries)
+        {
+            for (int i = 0; i < scoreEntries.Count; i++)
+            {
+                Destroy(scoreEntries[i].gameObject);
+            }
+            scoreEntries.Clear();
+
+            float entryHeight = EntryPrefab.GetComponent<RectTransform>().rect.height;
+
+            ContentRectTransform.sizeDelta = new Vector2(ContentRectTransform.sizeDelta.x, (entryHeight + OffsetBetweenEntries) * MyScoreData.Count);
+
+            for (int i = 0; i < MyScoreData.Count; i++)
+            {
+                SetEntryData tempEntry = Instantiate(EntryPrefab, ContentRectTransform.transform);
+                tempEntry.SetData(MyScoreData[i]);
+                tempEntry.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, (-entryHeight -OffsetBetweenEntries) * i);
+                scoreEntries.Add(tempEntry);
+            }         
+
+            instantiateEntries = false;
+        }
     }
+
+    void UpdateScoreboard()
+    {
+        StartCoroutine(DownloadWebPage(LeaderboardURL));
+    }
+
 
     IEnumerator DownloadWebPage(string urlToDownload)
     {
@@ -38,7 +73,10 @@ public class TestDownloadLeaderboard : MonoBehaviour
                 break;
             case UnityWebRequest.Result.Success:
                 Debug.Log("Received: " + webRequest.downloadHandler.text);
+
                 ScoreLines = webRequest.downloadHandler.text.Split('\n');
+
+                MyScoreData.Clear();
                 for (int i = 0; i < ScoreLines.Length; i++)
                 {
                     if (!string.IsNullOrEmpty(ScoreLines[i]))
@@ -46,6 +84,7 @@ public class TestDownloadLeaderboard : MonoBehaviour
                         MyScoreData.Add(new ScoreData(ScoreLines[i]));
                     }
                 }
+                instantiateEntries = true;
                 break;
         }
 
